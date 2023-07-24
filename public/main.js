@@ -20,6 +20,18 @@ myPeer.on('open', (clientId) => {
 socket.on('client-added', () => {
     logMessage('myPeer successfully joined room');
 });
+myPeer.on('connection', (connection) => {
+    logMessage('myPeer established a new connection from a remote peer');
+    //add to peers
+});
+myPeer.on('close', () => {
+    logMessage('myPeer closed');
+    myPeer.destroy();
+    peers = {};
+});
+myPeer.on('disconnected', () => {
+    logMessage('myPeer disconnected');
+});
 // Handle peerjs errors
 myPeer.on('error', (error) => {
     logMessage(error);
@@ -28,13 +40,13 @@ myPeer.on('error', (error) => {
 
 // When new client joined room, connect to new client (peer)
 socket.on('client-joined', clientId => {
-    logMessage(`Client connected ${clientId} to my room`);
+    logMessage(`Client ${clientId} connected to my room`);
     connectToPeer(clientId);
 });
 // Close peer connections when clients leave
 socket.on('client-left', clientId => {
     if (peers[clientId]) peers[clientId].close();
-    logMessage(`Client left ${clientId}`)
+    logMessage(`Client ${clientId} left`);
 });
 
 
@@ -59,12 +71,17 @@ let connectToPeer = (peerId) => {
 
     // When myPeer receives data
     connection.on('data', (data) => {
-        logMessage(`received: ${data}`);
+        logMessage(`myPeer received ${data}`);
     });
 
     // When myPeer closed connection with new peer
     connection.on('close', () => {
         logMessage(`myPeer closed connection with ${peerId}`);
+    });
+
+    // When error
+    connection.on('error', (error) => {
+        logMessage(error);
     });
 
     // Keep track of peer connections
