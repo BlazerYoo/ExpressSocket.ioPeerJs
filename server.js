@@ -57,7 +57,6 @@ io.on('connection', socket => {
         socket.on('disconnect', () => {
             console.log(`socket.io - Client ${clientId} disconnected`);
             socket.to(roomId).emit('client-left', clientId);
-            console.log(`socket.io - Client disconnected: ${clientId}`)
         });
     });
 });
