@@ -64,5 +64,5 @@ io.on('connection', socket => {
 
 // Start server
 server.listen(process.env.PORT || 3000, () => {
-    console.log(`App started listening on port  ${server.address().port}`);
+    console.log(`App started listening on port ${server.address().port}`);
 });
