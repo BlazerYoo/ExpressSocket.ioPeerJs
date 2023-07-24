@@ -4,7 +4,8 @@ const socket = io();
 let myPeer = new Peer({
     host: '/',
     path: '/peerjs-server',
-    port: 3001
+    port: 3001,
+    debug: 3
 });
 // Keep track of data connections with peers
 const peers = {};
