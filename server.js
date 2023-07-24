@@ -13,10 +13,10 @@ const peerServer = PeerServer({
     port: 3001
 });
 peerServer.on('connection', (client) => {
-    console.log(`peerjs - Client connected: ${client.getId()}`);
+    console.log(`peerjs - Client ${client.getId()} connected`);
 });
 peerServer.on('disconnect', (client) => {
-    console.log(`peerjs - Client disconnected: ${client.getId()}`);
+    console.log(`peerjs - Client ${client.getId()} disconnected`);
 });
 
 
