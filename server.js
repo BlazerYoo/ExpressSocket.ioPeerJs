@@ -38,7 +38,7 @@ app.get('/:room', (req, res) => {
 io.on('connection', socket => {
 
     // Client connected to socket.io server
-    console.log('socket.io - A client connected');
+    console.log('socket.io - Client connected');
 
     // Client emitted join-room
     socket.on('join-room', (roomId, clientId) => {
