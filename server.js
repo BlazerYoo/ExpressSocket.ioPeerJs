@@ -1,22 +1,26 @@
 const express = require('express');
 const app = express();
 const server = require('http').Server(app);
-const io = require('socket.io')(server);
-const { v4: uuidV4 } = require('uuid');
+const options = { cleanupEmptyChildNamespaces: true };
+const io = require('socket.io')(server, options);
 const { PeerServer } = require('peer');
+const { v4: uuidV4 } = require('uuid');
 
 
-// Set up peerjs server + handle peerjs connections
+// Start PeerServer
 const peerServer = PeerServer({
     debug: true,
     path: '/peerjs-server',
     port: 3001
 });
+
+// Client connects to PeerServer
 peerServer.on('connection', (client) => {
-    console.log(`peerjs - Client ${client.getId()} connected`);
+    console.log(`peerjs - Client ${client.getId()} connected to PeerServer`);
 });
+// Client disconnects from PeerServer
 peerServer.on('disconnect', (client) => {
-    console.log(`peerjs - Client ${client.getId()} disconnected`);
+    console.log(`peerjs - Client ${client.getId()} disconnected from PeerServer`);
 });
 
 
@@ -34,30 +38,52 @@ app.get('/:room', (req, res) => {
 });
 
 
-// Handle socket.io connections
-io.on('connection', socket => {
+// Client connects to socket.io server
+io.on('connection', (socket) => {
 
-    // Client connected to socket.io server
-    console.log('socket.io - Client connected');
+    console.log('socket.io - A client connected to socket.io server');
 
-    // Client emitted join-room
-    socket.on('join-room', (roomId, clientId) => {
+    // Client requested to join-room
+    socket.on('join-room', (roomId, clientId, callback) => {
+
         console.log(`socket.io - Client ${clientId} requested to join room ${roomId}`);
 
         // Add client to assigned room
         socket.join(roomId);
         console.log(`socket.io - Client ${clientId} added to room ${roomId}`);
-        socket.emit('client-added');
 
         // Alert clients in room that new client joined
-        socket.to(roomId).emit('client-joined', clientId);
-        console.log(`socket.io - Clients alerted that client ${clientId} added to room ${roomId}`);
-        
-        // Client disconnected from socket.io server
-        socket.on('disconnect', () => {
-            console.log(`socket.io - Client ${clientId} disconnected`);
-            socket.to(roomId).emit('client-left', clientId);
-        });
+        socket.to(roomId).emit('client-joined-room', roomId, clientId);
+
+        // Save roomId and clientId
+        socket.data.roomId = roomId;
+        socket.data.clientId = clientId;
+
+        // Server acknowledgement and response to join-room event
+        callback(`SERVER RESPONSE - socket.io - Client ${clientId} successfully added to room ${roomId}`);
+    });
+
+    // Client is going to be disconnected (but hasn't left its rooms yet)
+    socket.on('disconnecting', (reason) => {
+        let roomId = socket.data.roomId;
+        let clientId = socket.data.clientId;
+        if (roomId && clientId) {
+            console.log(`socket.io - Client ${clientId} disconnecting from socket.io server because ${reason}`);
+            socket.to(roomId).emit('client-left-room', roomId, clientId);
+        } else {
+            console.log(`socket.io - A client (with no connection with PeerServer & no assigned socket.io room) disconnecting from socket.io server because ${reason}`);
+        }
+    });
+
+    // Client disconnected from socket.io server
+    socket.on('disconnect', (reason) => {
+        let roomId = socket.data.roomId;
+        let clientId = socket.data.clientId;
+        if (roomId && clientId) {
+            console.log(`socket.io - Client ${clientId} disconnected from socket.io server because ${reason}`);
+        } else {
+            console.log(`socket.io - A client (with no connection with PeerServer & no assigned socket.io room) disconnected from socket.io server because ${reason}`);
+        }
     });
 });
 

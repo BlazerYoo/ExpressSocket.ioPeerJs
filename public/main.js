@@ -1,59 +1,92 @@
 // Connect to socket.io server
 const socket = io();
-// Connect to peerjs server
+// Connect to PeerServer
 let myPeer = new Peer({
     host: '/',
     path: '/peerjs-server',
     port: 3001,
-    debug: 3
+    //debug: 3
 });
 // Keep track of data connections with peers
 const peers = {};
+const removePeerConnection = (peerId) => {
+    if (peers[peerId]) {
+        peers[peerId].close();
+        delete peers[peerId];
+    }
+    logMessage(`peerjs - I closed connection with ${peerId}`);
+    logMessage(`peerjs - My connections ${Object.keys(peers).length}`);
+};
 
 
-// When myPeer connected to peerjs server, join socket.io room
-myPeer.on('open', (clientId) => {
-    logMessage(`myPeer ID is: ${clientId}`);
-    logMessage(`myPeer requesting to join ${ROOM_ID}`);
-    socket.emit('join-room', ROOM_ID, clientId);
+// I connect with socket.io server
+socket.on('connect', () => {
+    logMessage('socket.io - I connected to socket.io server');
 });
-socket.on('client-added', () => {
-    logMessage('myPeer successfully joined room');
+// When new client joined room, connect to new client (peer)
+socket.on('client-joined-room', (roomId, clientId) => {
+    logMessage(`socket.io - Client ${clientId} joined my room ${roomId}`);
+    connectToPeer(clientId);
+});
+// When clients leave room, close peer connection
+socket.on('client-left-room', (roomId, clientId) => {
+    logMessage(`socket.io - Client ${clientId} left my room ${roomId}`);
+    removePeerConnection(clientId);
+});
+// I disconnect with socket.io server
+socket.on('disconnect', (reason) => {
+    logMessage(`socket.io - My disconnection ${reason}`);
+    socket.connect();
+});
+// socket.io connection error
+socket.on('connect_error', (error) => {
+    logMessage(`socket.io - My connect error ${error}`);
+});
+
+
+// When myPeer connected to PeerServer, join socket.io room
+myPeer.on('open', (clientId) => {
+    logMessage(`peerjs - myPeer ID is ${clientId}`);
+    logMessage(`peerjs - myPeer requesting to join ${ROOM_ID}`);
+    socket.emit('join-room', ROOM_ID, clientId, (response) => {
+        logMessage(`socket.io - ${response}`);
+    });
 });
 myPeer.on('connection', (connection) => {
-    logMessage('myPeer established a new connection from a remote peer');
-    //add to peers
+    logMessage('peerjs - myPeer established a new connection from a remote peer');
+    // Keep track of peer connections
+    peers[connection.peer] = connection;
+    logMessage(`peerjs - My connections ${Object.keys(peers).length}`);
 });
+// myPeer is destroyed + can no longer accept or create any new connections + all connections to myPeer will be closed (destory just in case)
 myPeer.on('close', () => {
-    logMessage('myPeer closed');
+    logMessage('peerjs - myPeer closed');
     myPeer.destroy();
     peers = {};
 });
+// myPeer is disconnected from signaling server (existing peer connection stay alive but cannot create new peer connections until reconnected)
 myPeer.on('disconnected', () => {
-    logMessage('myPeer disconnected');
+    logMessage('peerjs - myPeer disconnected');
+    myPeer.reconnect();
 });
 // Handle peerjs errors
 myPeer.on('error', (error) => {
-    logMessage(error);
+    logMessage(`peerjs - Error ${error}`);
 });
 
 
-// When new client joined room, connect to new client (peer)
-socket.on('client-joined', clientId => {
-    logMessage(`Client ${clientId} connected to my room`);
-    connectToPeer(clientId);
-});
-// Close peer connections when clients leave
-socket.on('client-left', clientId => {
-    if (peers[clientId]) peers[clientId].close();
-    logMessage(`Client ${clientId} left`);
-});
+
 
 
 // Display events
 let logMessage = (message_content) => {
     let messages = document.getElementById('messages');
     let message = document.createElement('p');
+    if (message_content.split(' - ')[0][0] === 'p') {
+        message.classList.add('peer');
+    } else {
+        message.classList.add('socket');
+    }
     message.textContent = message_content;
     messages.appendChild(message);
 };
@@ -61,29 +94,32 @@ let logMessage = (message_content) => {
 
 // Initiate peer to peer connections
 let connectToPeer = (peerId) => {
-    logMessage(`myPeer connecting to ${peerId}...`);
+    logMessage(`peerjs - myPeer connecting to ${peerId}...`);
     let connection = myPeer.connect(peerId);
+
 
     // When myPeer successfully connected to new peer
     connection.on('open', () => {
-        logMessage(`myPeer successfully connected to ${peerId}`);
+        logMessage(`peerjs - myPeer successfully connected to ${peerId}`);
+        // Keep track of peer connections
+        peers[peerId] = connection;
+        logMessage(`peerjs - My connections ${Object.keys(peers).length}`);
     });
 
     // When myPeer receives data
     connection.on('data', (data) => {
-        logMessage(`myPeer received ${data}`);
+        logMessage(`peerjs - myPeer received ${data}`);
     });
 
     // When myPeer closed connection with new peer
     connection.on('close', () => {
-        logMessage(`myPeer closed connection with ${peerId}`);
+        logMessage(`peerjs - myPeer closed connection with ${peerId}`);
+        removePeerConnection(peerId);
     });
 
     // When error
     connection.on('error', (error) => {
-        logMessage(error);
+        logMessage(`peerjs - Error ${error}`);
     });
 
-    // Keep track of peer connections
-    peers[peerId] = connection;
 };
