@@ -14,8 +14,8 @@ const removePeerConnection = (peerId) => {
         peers[peerId].close();
         delete peers[peerId];
     }
-    logMessage(`peerjs - I closed connection with ${peerId}`);
-    logMessage(`peerjs - My connections ${Object.keys(peers).length}`);
+    logMessage(`peerjs - myPeer closed connection with ${peerId}`);
+    logMessage(`peerjs - myPeer connections ${Object.keys(peers).length}`);
 };
 
 
@@ -53,7 +53,7 @@ myPeer.on('open', (clientId) => {
     });
 });
 myPeer.on('connection', (connection) => {
-    logMessage('peerjs - myPeer established a new connection from a remote peer');
+    logMessage(`peerjs - myPeer established a new connection from a remote peer ${connection.peer}`);
     // Keep track of peer connections
     peers[connection.peer] = connection;
     logMessage(`peerjs - My connections ${Object.keys(peers).length}`);
