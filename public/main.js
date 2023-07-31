@@ -84,7 +84,7 @@ socket.on('connect_error', (error) => {
 // When myPeer connected to PeerServer, join socket.io room
 myPeer.on('open', (clientId) => {
     logMessage(`peerjs - myPeer ID is ${clientId}`);
-    logMessage(`peerjs - myPeer requesting to join ${ROOM_ID}`);
+    logMessage(`socket.io - myPeer requesting to join ${ROOM_ID}`);
     socket.emit('join-room', ROOM_ID, clientId, (response) => {
         logMessage(`socket.io - ${response}`);
     });
