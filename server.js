@@ -7,6 +7,22 @@ const { PeerServer } = require('peer');
 const { v4: uuidV4 } = require('uuid');
 
 
+
+// Use EJS + static files
+app.set('view engine', 'ejs');
+app.use(express.static('public'));
+
+// Generate random roomId
+app.get('/', (req, res) => {
+    res.redirect(`/${uuidV4()}`);
+});
+
+app.get('/:room', (req, res) => {
+    res.render('room-view', { roomId: req.params.room });
+});
+
+
+
 // Start PeerServer
 const peerServer = PeerServer({
     //debug: true,
@@ -18,24 +34,12 @@ const peerServer = PeerServer({
 peerServer.on('connection', (client) => {
     console.log(`peerjs - Client ${client.getId()} connected to PeerServer`);
 });
+
 // Client disconnects from PeerServer
 peerServer.on('disconnect', (client) => {
     console.log(`peerjs - Client ${client.getId()} disconnected from PeerServer`);
 });
 
-
-// Use EJS + static files
-app.set('view engine', 'ejs');
-app.use(express.static('public'));
-
-
-// Generate random roomId
-app.get('/', (req, res) => {
-    res.redirect(`/${uuidV4()}`);
-});
-app.get('/:room', (req, res) => {
-    res.render('room-view', { roomId: req.params.room });
-});
 
 
 // Client connects to socket.io server
@@ -86,6 +90,7 @@ io.on('connection', (socket) => {
         }
     });
 });
+
 
 
 // Start server

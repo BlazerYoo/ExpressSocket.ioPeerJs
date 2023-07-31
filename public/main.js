@@ -9,6 +9,43 @@ let myPeer = new Peer({
 });
 // Keep track of data connections with peers
 const peers = {};
+
+
+
+// Initiate peer to peer connections
+let connectToPeer = (peerId) => {
+    logMessage(`peerjs - myPeer connecting to ${peerId}...`);
+    let connection = myPeer.connect(peerId);
+    createPeerConnection(connection);
+};
+
+// Register peerjs dataConnection event handlers
+const createPeerConnection = (connection) => {
+
+    // When myPeer successfully connected to new peer
+    connection.on('open', () => {
+        logMessage(`peerjs - myPeer successfully connected to ${connection.peer}`);
+        // Keep track of peer connections
+        peers[connection.peer] = connection;
+        logMessage(`peerjs - My connections ${Object.keys(peers).length}`);
+    });
+
+    // When myPeer receives data
+    connection.on('data', (data) => {
+        logMessage(`peerjs - myPeer received ${data}`);
+    });
+
+    // When myPeer closed connection with new peer
+    connection.on('close', () => {
+        logMessage(`peerjs - myPeer closed connection with ${connection.peer}`);
+        removePeerConnection(connection.peer);
+    });
+
+    // When error
+    connection.on('error', (error) => {
+        logMessage(`peerjs - Error ${error}`);
+    });
+};
 const removePeerConnection = (peerId) => {
     if (peers[peerId]) {
         peers[peerId].close();
@@ -54,9 +91,7 @@ myPeer.on('open', (clientId) => {
 });
 myPeer.on('connection', (connection) => {
     logMessage(`peerjs - myPeer established a new connection from a remote peer ${connection.peer}`);
-    // Keep track of peer connections
-    peers[connection.peer] = connection;
-    logMessage(`peerjs - My connections ${Object.keys(peers).length}`);
+    createPeerConnection(connection);
 });
 // myPeer is destroyed + can no longer accept or create any new connections + all connections to myPeer will be closed (destory just in case)
 myPeer.on('close', () => {
@@ -89,37 +124,4 @@ let logMessage = (message_content) => {
     }
     message.textContent = message_content;
     messages.appendChild(message);
-};
-
-
-// Initiate peer to peer connections
-let connectToPeer = (peerId) => {
-    logMessage(`peerjs - myPeer connecting to ${peerId}...`);
-    let connection = myPeer.connect(peerId);
-
-
-    // When myPeer successfully connected to new peer
-    connection.on('open', () => {
-        logMessage(`peerjs - myPeer successfully connected to ${peerId}`);
-        // Keep track of peer connections
-        peers[peerId] = connection;
-        logMessage(`peerjs - My connections ${Object.keys(peers).length}`);
-    });
-
-    // When myPeer receives data
-    connection.on('data', (data) => {
-        logMessage(`peerjs - myPeer received ${data}`);
-    });
-
-    // When myPeer closed connection with new peer
-    connection.on('close', () => {
-        logMessage(`peerjs - myPeer closed connection with ${peerId}`);
-        removePeerConnection(peerId);
-    });
-
-    // When error
-    connection.on('error', (error) => {
-        logMessage(`peerjs - Error ${error}`);
-    });
-
 };
