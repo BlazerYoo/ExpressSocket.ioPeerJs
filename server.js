@@ -9,7 +9,7 @@ const { v4: uuidV4 } = require('uuid');
 
 // Start PeerServer
 const peerServer = PeerServer({
-    debug: true,
+    //debug: true,
     path: '/peerjs-server',
     port: 3001
 });
